@@ -13,7 +13,7 @@ export default class PlatesDataAccess {
         return result
     }
 
-        async getAvailabPlates() {
+    async getAvailablePlates() {
         const result = await Mongo.db
             .collection(collectionName)
             .find({ available: true })

@@ -18,7 +18,7 @@ export default class PlatesControlers {
 
     async getAvailablePlates() {
         try {
-            const plates = await this.dataAccess.getAvailabPlates()
+            const plates = await this.dataAccess.getAvailablePlates()
 
             return ok(plates)
         } catch (error) {
@@ -48,7 +48,7 @@ export default class PlatesControlers {
 
     async updatePlate(plateId, plateData) {
         try {
-            const result = await this.dataAccess.updatePlates(plateId, plateData)
+            const result = await this.dataAccess.updatePlate(plateId, plateData)
 
             return ok(result)
         } catch (error) {
