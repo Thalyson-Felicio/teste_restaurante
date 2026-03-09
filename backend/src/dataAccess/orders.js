@@ -33,7 +33,7 @@ export default class OrderDataAccess {
                 {
                     $unwind: '$orderItems'
                 },
-                                {
+                {
                     $lookup: {
                         from: 'plates',
                         localField: 'orderItems.plateId',
@@ -41,6 +41,70 @@ export default class OrderDataAccess {
                         as: 'orderItems.itemDetails'
                     }
                 },
+                {
+                    $group: {
+                        _id: '$_id',
+                        userDetails: { $first: '$userDetails' },
+                        orderItems: { $push: '$orderItems' },
+                        pickupStatus: { $first: '$pickupStatus' },
+                        pickupTime: { $first: '$pickupTime' },
+                    }
+                }
+            ])
+            .toArray()
+
+        return result
+    }
+
+    async getOrdersByUserId(userId) {
+        const result = await Mongo.db
+            .collection(collectionName)
+            .aggregate([
+                {
+                    $match: { userId: new ObjectId(userId) }
+                },
+                {
+                    $lookup: {
+                        from: 'orderItems',
+                        localField: 'userId',
+                        foreignField: '_id',
+                        as: 'userDetails'
+                    }
+                },
+                {
+                    $lookup: {
+                        from: 'users',
+                        localField: 'userId',
+                        foreignField: 'orderId',
+                        as: 'orderItems'
+                    }
+                },
+                {
+                    $project: {
+                        'userDetails.password': 0,
+                        'userDetails.salt': 0,
+                    }
+                },
+                {
+                    $unwind: '$orderItems'
+                },
+                {
+                    $lookup: {
+                        from: 'plates',
+                        localField: 'orderItems.plateId',
+                        foreignField: '_id',
+                        as: 'orderItems.itemDetails'
+                    }
+                },
+                {
+                    $group: {
+                        _id: '$_id',
+                        userDetails: { $first: '$userDetails' },
+                        orderItems: { $push: '$orderItems' },
+                        pickupStatus: { $first: '$pickupStatus' },
+                        pickupTime: { $first: '$pickupTime' },
+                    }
+                }
             ])
             .toArray()
 
@@ -59,13 +123,13 @@ export default class OrderDataAccess {
             .collection(collectionName)
             .insertOne(orderDataRest)
 
-        if(!newOrder.insertedId) {
+        if (!newOrder.insertedId) {
             throw new Error('Order cannot be inserted')
         }
 
         items.map((item) => {
-            item.plateId = new ObjectId(item.plateId) 
-            item.orderId = new ObjectId(newOrder.insertedId) 
+            item.plateId = new ObjectId(item.plateId)
+            item.orderId = new ObjectId(newOrder.insertedId)
         })
 
         const result = await Mongo.db
@@ -76,9 +140,19 @@ export default class OrderDataAccess {
     }
 
     async deleteOrder(orderId) {
-        const result = await Mongo.db
+
+        const itemsToDelete = await Mongo.db
+            .collection('orderItems')
+            .deleteMany({ orderId: new ObjectId(orderId) })
+
+        const orderToDelete = await Mongo.db
             .collection(collectionName)
             .findOneAndDelete({ _id: new ObjectId(orderId) })
+
+        const result = (
+            itemsToDelete,
+            orderToDelete
+        )
 
         return result
     }
